@@ -19,6 +19,7 @@ from .serializers import (FollowSerializer, UserSerializer, TagSerializer,
                           IngredientSerializer, RecipeViewSerializer,
                           RecipeWriteSerializer, FavoriteSerializer,
                           ShoppingCartSerializer)
+from .utils import create_shopping_cart_file
 
 User = get_user_model()
 
@@ -40,9 +41,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def set_password(self, request):
         serializer = SetPasswordSerializer(data=request.data,
                                            context={'request': request})
-        if not serializer.is_valid(raise_exception=True):
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         self.request.user.set_password(serializer.data["new_password"])
         self.request.user.save()
@@ -52,26 +51,19 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=[IsAuthenticated])
     def subscribe(self, request, **kwargs):
-        author = get_object_or_404(User, id=self.request.data.get('id'))
+        author = get_object_or_404(User, id=kwargs.get('pk'))
         user = self.request.user
         if request.method == 'POST':
             serializer = FollowSerializer(
                 data=request.data,
                 context={'request': request, 'author': author})
-            if not serializer.is_valid(raise_exception=True):
-                return Response({'errors': 'Пользователь не найден'},
-                                status=status.HTTP_404_NOT_FOUND)
-
+            serializer.is_valid(raise_exception=True)
             serializer.save(author=author, user=user)
             return Response({'Успешная подписка на пользователя':
                             serializer.data},
                             status=status.HTTP_201_CREATED)
 
-        if not Follow.objects.filter(author=author, user=user).exists():
-            return Response({'errors':
-                            f'Вы не подписаны на пользователя {author}'},
-                            status=status.HTTP_404_NOT_FOUND)
-        Follow.objects.get(author=author).delete()
+        Follow.objects.filter(author=author, user=user).delete()
         return Response('Успешная отписка', status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'],
@@ -122,17 +114,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response({'errors': 'Рецепт уже добавлен!'},
                                 status=status.HTTP_400_BAD_REQUEST)
             serializer = serializer(data=data)
-            if serializer.is_valid(raise_exception=True):
-                serializer.save(user=user, recipe=recipe)
-                return Response(serializer.data,
-                                status=status.HTTP_201_CREATED)
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-        if not model.objects.filter(user=user,
-                                    recipe=recipe).exists():
-            return Response({'errors': 'Объект не найден'},
-                            status=status.HTTP_404_NOT_FOUND)
-        model.objects.get(recipe=recipe).delete()
+            serializer.is_valid(raise_exception=True)
+            serializer.save(user=user, recipe=recipe)
+            return Response(serializer.data,
+                            status=status.HTTP_201_CREATED)
+
+        model.objects.filter(user=user, recipe=recipe).delete()
         return Response('Рецепт успешно удалён.',
                         status=status.HTTP_204_NO_CONTENT)
 
@@ -151,14 +138,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request, **kwargs):
         user = User.objects.get(id=self.request.user.pk)
-        sum_ingredients = IngredientsInRecipe.objects.filter(
-            recipe__shopping_cart__user=user).values(
-            'ingredient__name', 'ingredient__measurement_unit').annotate(
-            amounts=Sum('amount'))
-
-        shopping_list = '\n'.join(
-            [f'{ingredient["ingredient__name"]} {ingredient["amounts"]} '
-             f'{ingredient["ingredient__measurement_unit"]}'
-             for ingredient in sum_ingredients])
-        response = HttpResponse(shopping_list, content_type='text/plain')
-        return response
+        return create_shopping_cart_file(user)

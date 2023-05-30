@@ -192,16 +192,16 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         if not ingredients:
             raise ValidationError(
                 {'ingredients': 'Нужно выбрать ингредиент!'})
-        ingredients_list = []
+        ingredients_set = set()
         for item in ingredients:
             ingredient = get_object_or_404(Ingredient, name=item['id'])
-            if ingredient in ingredients_list:
+            if ingredient in ingredients_set:
                 raise ValidationError(
-                    {'ingredients': 'Ингридиенты повторяются!'})
+                    {'ingredients': 'Ингредиенты повторяются!'})
             if int(item['amount']) < 1:
                 raise ValidationError(
                     {'amount': 'Количество должно быть как минимум 1!'})
-            ingredients_list.append(ingredient)
+            ingredients_set.add(ingredient)
         return ingredients
 
     def validate_tags(self, tags):
@@ -219,11 +219,15 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return value
 
     def add_tags_ingredients(self, ingredients, tags, model):
-        for ingredient in ingredients:
-            IngredientsInRecipe.objects.update_or_create(
-                recipe=model,
-                ingredient=ingredient['id'],
-                amount=ingredient['amount'])
+        added_ingredients = [IngredientsInRecipe(
+            recipe=model, ingredient=ingredient['id'],
+            amount=ingredient['amount']) for ingredient in ingredients]
+        # for ingredient in ingredients:
+        #     IngredientsInRecipe.objects.update_or_create(
+        #         recipe=model,
+        #         ingredient=ingredient['id'],
+        #         amount=ingredient['amount'])
+        IngredientsInRecipe.objects.bulk_create(added_ingredients)
         model.tags.set(tags)
 
     def create(self, validated_data):
