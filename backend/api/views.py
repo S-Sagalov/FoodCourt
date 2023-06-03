@@ -1,5 +1,3 @@
-from django.db.models import Sum
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
@@ -14,7 +12,7 @@ from .permissions import IsAuthorOrAdminOrReadOnly
 from .paginations import Pagination
 from .filters import RecipeFilter
 from recipes.models import (Follow, Tag, Ingredient, Recipe, ShoppingCart,
-                            Favorite, IngredientsInRecipe)
+                            Favorite)
 from .serializers import (FollowSerializer, UserSerializer, TagSerializer,
                           IngredientSerializer, RecipeViewSerializer,
                           RecipeWriteSerializer, FavoriteSerializer,
@@ -137,5 +135,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(methods=['get'], detail=False,
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request, **kwargs):
-        user = User.objects.get(id=self.request.user.pk)
-        return create_shopping_cart_file(user)
+        return create_shopping_cart_file(request.user)

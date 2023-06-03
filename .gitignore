@@ -8,7 +8,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -134,7 +133,4 @@ dmypy.json
 # папки со статикой и медиа
 media/
 
-#временный игнор
-frontend/
-data/
-docs/
+
