@@ -188,26 +188,24 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         fields = ('id', 'ingredients', 'tags', 'image',
                   'name', 'text', 'cooking_time', 'author')
 
-    def validate_ingredients(self, ingredients):
+    def validate(self, data):
+        ingredients = self.initial_data.get('ingredients')
         if not ingredients:
-            raise ValidationError(
-                {'ingredients': 'Нужно выбрать ингредиент!'})
+            raise ValidationError('Нужно выбрать хотя бы один ингредиент!')
         ingredients_set = set()
         for item in ingredients:
-            ingredient = get_object_or_404(Ingredient, name=item['id'])
-            if ingredient in ingredients_set:
-                raise ValidationError(
-                    {'ingredients': 'Ингредиенты повторяются!'})
+            ingredient_id = item['id']
+            if ingredient_id in ingredients_set:
+                raise ValidationError('Ингредиенты должны быть уникальными!')
+            ingredients_set.add(ingredient_id)
             if int(item['amount']) < 1:
-                raise ValidationError(
-                    {'amount': 'Количество должно быть как минимум 1!'})
-            ingredients_set.add(ingredient)
-        return ingredients
+                raise ValidationError('Количество должно быть не меньше 1!')
+
+        return data
 
     def validate_tags(self, tags):
         if not tags:
-            raise ValidationError(
-                {'tags': 'Нужно выбрать хотя бы один тег!'})
+            raise ValidationError('Нужно выбрать хотя бы один тег!')
         return list(set(tags))
 
     def to_representation(self, instance):

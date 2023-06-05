@@ -10,7 +10,7 @@ from djoser.serializers import SetPasswordSerializer
 
 from .permissions import IsAuthorOrAdminOrReadOnly
 from .paginations import Pagination
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientSearchFilter
 from recipes.models import (Follow, Tag, Ingredient, Recipe, ShoppingCart,
                             Favorite)
 from .serializers import (FollowSerializer, UserSerializer, TagSerializer,
@@ -87,7 +87,7 @@ class IngredientViewSet(mixins.ListModelMixin,
                         viewsets.GenericViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (IngredientSearchFilter, )
     search_fields = ('name',)
 
 
@@ -124,7 +124,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=[IsAuthenticated])
     def favorite(self, request, *args, **kwargs):
-        self.add_or_delete_recipe(request, Favorite, FavoriteSerializer)
+        return self.add_or_delete_recipe(request, Favorite, FavoriteSerializer)
 
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=[IsAuthenticated])
