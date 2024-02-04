@@ -1,4 +1,3 @@
-![status](https://github.com/S-Sagalov/foodgram-project-react/actions/workflows/main.yml/badge.svg)
 
 # FoodCourt
 Проект сайта-кулинарного блога, где пользователи могут публиковать свои рецепты, просматривать рецепты других людей, подписываться на любимых авторов, а так же формировать корзину покупок.
